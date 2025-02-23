@@ -22,28 +22,15 @@ exports.handler = async (event, context) => {
     
     targetUrl.search = url.search;
 
-    const response = await fetch(targetUrl.toString(), {
-      cf: {
-        cacheTtl: 31536000,
-        cacheEverything: true
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Upstream responded with ${response.status}`);
-    }
-
+    const response = await fetch(targetUrl.toString());
     const body = await response.arrayBuffer();
 
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'image/webp',
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
-        'X-Served-By': `Netlify Functions & ${service}`,
-        'Surrogate-Control': 'public, max-age=31536000',
-        'Surrogate-Key': `image ${path.split('/').pop()}`
+        'Cache-Control': 'public, max-age=31536000',
+        'X-Served-By': `Netlify Functions & ${service}`
       },
       body: Buffer.from(body).toString('base64'),
       isBase64Encoded: true
