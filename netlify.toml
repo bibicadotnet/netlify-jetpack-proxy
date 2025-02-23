@@ -5,3 +5,14 @@
   from = "/*"
   to = "/.netlify/functions/imageProxy"
   status = 200
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+
+[functions]
+  node_bundler = "esbuild"
