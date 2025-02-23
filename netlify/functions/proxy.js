@@ -1,8 +1,8 @@
-// netlify/functions/proxy.js
-exports.handler = async (event, context) => {
-  const request = event;
-  const url = new URL(request.rawUrl);
+// netlify/functions/imageProxy.js
 
+exports.handler = async (event, context) => {
+  const url = new URL(event.rawUrl);
+  
   const rules = {
     '/avatar': {
       targetHost: 'secure.gravatar.com',
@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
   };
 
   const rule = Object.entries(rules).find(([prefix]) => url.pathname.startsWith(prefix));
-
+  
   if (!rule) {
     return {
       statusCode: 404,
@@ -30,26 +30,29 @@ exports.handler = async (event, context) => {
     };
   }
 
-  const targetUrl = new URL(request.rawUrl);
+  const targetUrl = new URL(event.rawUrl);
   const [prefix, config] = rule;
+  
   targetUrl.hostname = config.targetHost;
   targetUrl.pathname = config.pathTransform(url.pathname, prefix);
   targetUrl.search = url.search;
 
   try {
-    const response = await fetch(targetUrl.toString(), {
-      headers: { 'Accept': request.headers['accept'] || '*/*' }
+    const response = await fetch(targetUrl, {
+      headers: {
+        'Accept': event.headers.accept || '*/*'
+      }
     });
 
     const body = await response.arrayBuffer();
 
     return {
-      statusCode: response.status,
+      statusCode: 200,
       headers: {
-        'content-type': response.headers.get('content-type') || 'image/webp',
-        'link': response.headers.get('link'),
+        'Content-Type': 'image/webp',
+        'Link': response.headers.get('link'),
         'X-Cache': response.headers.get('x-nc'),
-        'X-Served-By': `Netlify & ${config.service}`
+        'X-Served-By': `Netlify Functions & ${config.service}`
       },
       body: Buffer.from(body).toString('base64'),
       isBase64Encoded: true
@@ -57,7 +60,7 @@ exports.handler = async (event, context) => {
   } catch (error) {
     return {
       statusCode: 500,
-      body: `Internal Server Error: ${error.message}`
+      body: `Error fetching image: ${error.message}`
     };
   }
 };
