@@ -36,21 +36,28 @@ exports.handler = async (event, context) => {
   targetUrl.pathname = config.pathTransform(url.pathname, prefix);
   targetUrl.search = url.search;
 
-  const response = await fetch(targetUrl.toString(), {
-    headers: { 'Accept': request.headers['accept'] || '*/*' }
-  });
+  try {
+    const response = await fetch(targetUrl.toString(), {
+      headers: { 'Accept': request.headers['accept'] || '*/*' }
+    });
 
-  const body = await response.arrayBuffer();
+    const body = await response.arrayBuffer();
 
-  return {
-    statusCode: response.status,
-    headers: {
-      'content-type': 'image/webp',
-      'link': response.headers.get('link'),
-      'X-Cache': response.headers.get('x-nc'),
-      'X-Served-By': `Netlify & ${config.service}`
-    },
-    body: Buffer.from(body).toString('base64'),
-    isBase64Encoded: true
-  };
+    return {
+      statusCode: response.status,
+      headers: {
+        'content-type': response.headers.get('content-type') || 'image/webp',
+        'link': response.headers.get('link'),
+        'X-Cache': response.headers.get('x-nc'),
+        'X-Served-By': `Netlify & ${config.service}`
+      },
+      body: Buffer.from(body).toString('base64'),
+      isBase64Encoded: true
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: `Internal Server Error: ${error.message}`
+    };
+  }
 };
