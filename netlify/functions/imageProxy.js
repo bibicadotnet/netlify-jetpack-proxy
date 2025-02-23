@@ -29,8 +29,9 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers: {
         'Content-Type': 'image/webp',
-        'Cache-Control': 'public, max-age=31536000',
-        'X-Served-By': `Netlify Functions & ${service}`
+        'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
+        'X-Served-By': `Netlify Functions & ${service}`,
+        'Vary': 'Accept'
       },
       body: Buffer.from(body).toString('base64'),
       isBase64Encoded: true
