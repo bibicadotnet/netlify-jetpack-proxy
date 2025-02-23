@@ -1,5 +1,4 @@
 // netlify/functions/imageProxy.js
-const CACHE_DURATION = '31536000'; // 1 year in seconds
 
 exports.handler = async (event, context) => {
   try {
@@ -23,15 +22,28 @@ exports.handler = async (event, context) => {
     
     targetUrl.search = url.search;
 
-    const response = await fetch(targetUrl.toString());
+    const response = await fetch(targetUrl.toString(), {
+      cf: {
+        cacheTtl: 31536000,
+        cacheEverything: true
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upstream responded with ${response.status}`);
+    }
+
     const body = await response.arrayBuffer();
 
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'image/webp',
-        'Cache-Control': `public, max-age=${CACHE_DURATION}`,
-        'X-Served-By': `Netlify Functions & ${service}`
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+        'X-Served-By': `Netlify Functions & ${service}`,
+        'Surrogate-Control': 'public, max-age=31536000',
+        'Surrogate-Key': `image ${path.split('/').pop()}`
       },
       body: Buffer.from(body).toString('base64'),
       isBase64Encoded: true
@@ -40,7 +52,10 @@ exports.handler = async (event, context) => {
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to proxy image' })
+      body: JSON.stringify({ error: 'Failed to proxy image' }),
+      headers: {
+        'Content-Type': 'application/json'
+      }
     };
   }
 };
