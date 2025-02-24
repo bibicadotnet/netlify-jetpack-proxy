@@ -1,8 +1,11 @@
-const fetch = require('node-fetch'); // Yêu cầu thêm thư viện node-fetch
+// netlify/functions/image-proxy.js
+const fetch = require('node-fetch');
 
 exports.handler = async (event, context) => {
+  // Khởi tạo URL từ request
   const url = new URL(event.rawUrl);
-
+  
+  // Định nghĩa rules cho việc chuyển đổi URL
   const rules = {
     '/avatar': {
       targetHost: 'secure.gravatar.com',
@@ -21,7 +24,7 @@ exports.handler = async (event, context) => {
     }
   };
 
-  // Tìm quy tắc phù hợp với đường dẫn
+  // Tìm rule phù hợp
   const rule = Object.entries(rules).find(([prefix]) => url.pathname.startsWith(prefix));
 
   if (!rule) {
@@ -31,50 +34,43 @@ exports.handler = async (event, context) => {
     };
   }
 
-  const [prefix, config] = rule;
-  const targetUrl = new URL(event.rawUrl);
-
-  // Cập nhật hostname và pathname dựa trên quy tắc
-  targetUrl.hostname = config.targetHost;
-  targetUrl.pathname = config.pathTransform(url.pathname, prefix);
-  targetUrl.search = url.search;
-
   try {
-    // Gửi yêu cầu đến máy chủ đích
+    const [prefix, config] = rule;
+    const targetUrl = new URL(event.rawUrl);
+    targetUrl.hostname = config.targetHost;
+    targetUrl.pathname = config.pathTransform(url.pathname, prefix);
+    targetUrl.search = url.search;
+
+    // Thực hiện fetch request
     const response = await fetch(targetUrl.toString(), {
       headers: {
-        'Accept': event.headers.accept || '*/*'
+        'Accept': event.headers.accept || '*/*',
+        'User-Agent': 'Netlify Function Image Proxy'
       }
     });
 
-    // Kiểm tra phản hồi từ máy chủ đích
-    if (!response.ok) {
-      return {
-        statusCode: response.status,
-        body: `Error from target server: ${response.statusText}`
-      };
-    }
+    // Xử lý binary data
+    const buffer = await response.arrayBuffer();
 
-    // Đọc dữ liệu hình ảnh dưới dạng ArrayBuffer
-    const body = await response.arrayBuffer();
-
-    // Trả về phản hồi với dữ liệu hình ảnh
+    // Trả về response với headers phù hợp
     return {
-      statusCode: 200,
+      statusCode: response.status,
       headers: {
-        'Content-Type': response.headers.get('content-type') || 'image/webp',
+        'Content-Type': 'image/webp',
+        'Cache-Control': 'public, max-age=31536000',
         'Link': response.headers.get('link'),
         'X-Cache': response.headers.get('x-nc'),
         'X-Served-By': `Netlify Functions & ${config.service}`
       },
-      body: Buffer.from(body).toString('base64'),
+      body: Buffer.from(buffer).toString('base64'),
       isBase64Encoded: true
     };
+
   } catch (error) {
-    // Xử lý lỗi nếu có
+    console.error('Error:', error);
     return {
       statusCode: 500,
-      body: `Error fetching image: ${error.message}`
+      body: JSON.stringify({ error: 'Internal Server Error' })
     };
   }
 };
