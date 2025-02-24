@@ -1,11 +1,28 @@
 [build]
   functions = "netlify/functions"
 
+# Handle special paths with function
 [[redirects]]
-  from = "/*"
+  from = "/avatar/*"
   to = "/.netlify/functions/imageProxy"
   status = 200
   force = true
 
-[functions]
-  node_bundler = "esbuild"
+[[redirects]]
+  from = "/comment/*"
+  to = "/.netlify/functions/imageProxy"
+  status = 200
+  force = true
+
+# Direct proxy for normal images
+[[redirects]]
+  from = "/*"
+  to = "https://i0.wp.com/bibica.net/wp-content/uploads/:splat"
+  status = 200
+  force = true
+
+# Cache settings for proxied content
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
