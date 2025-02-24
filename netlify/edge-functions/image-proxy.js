@@ -1,8 +1,7 @@
-// netlify/edge-functions/image-proxy.js
 export default async function handler(request, context) {
   const url = new URL(request.url);
   
-  // Set cache cho context
+  // Kích hoạt cache
   context.cache = {
     edge: {
       maxAge: 31536000 // 1 năm
