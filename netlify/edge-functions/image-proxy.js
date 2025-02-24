@@ -1,27 +1,6 @@
-export default async function handler(request, context) {
+export default async function handler(request) {
   const url = new URL(request.url);
   
-  // Xử lý và chuẩn hóa query parameters
-  const allowedParams = ['w', 'h', 'size'];
-  const filteredParams = new URLSearchParams();
-  for (const [key, value] of new URLSearchParams(url.search)) {
-    if (allowedParams.includes(key)) {
-      filteredParams.append(key, value);
-    }
-  }
-  
-  // Tạo cache key và cấu hình
-  const cacheKey = `${url.pathname}`;
-  context.cache = {
-    edge: {
-      maxAge: 31536000,
-      varyBy: {
-        query: false,
-        headers: ['Accept-Encoding']
-      }
-    }
-  };
-
   const rules = {
     '/avatar': {
       targetHost: 'secure.gravatar.com',
@@ -50,7 +29,7 @@ export default async function handler(request, context) {
   const [prefix, config] = rule;
   targetUrl.hostname = config.targetHost;
   targetUrl.pathname = config.pathTransform(url.pathname, prefix);
-  targetUrl.search = filteredParams.toString();
+  targetUrl.search = url.search;
 
   const response = await fetch(targetUrl, {
     headers: {
@@ -60,12 +39,11 @@ export default async function handler(request, context) {
 
   return new Response(response.body, {
     headers: {
-      'Content-Type': 'image/webp',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-      'Link': response.headers.get('link'),
+      'content-type': 'image/webp',
+      'Cache-Control': 'public, max-age=31536000',
+      'link': response.headers.get('link'),
       'X-Cache': response.headers.get('x-nc'),
-      'X-Served-By': `Netlify Edge & ${config.service}`,
-      'Vary': 'Accept-Encoding'
+      'X-Served-By': `Netlify Edge & ${config.service}`
     }
   });
 }
