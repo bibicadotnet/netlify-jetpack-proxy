@@ -1,6 +1,11 @@
 [build]
-  edge_functions = "netlify/edge-functions"
+  functions = "netlify/functions"
 
-[[edge_functions]]
-  path = "/*"
-  function = "imageProxy"
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/imageProxy"
+  status = 200
+  force = true
+
+[functions]
+  node_bundler = "esbuild"
