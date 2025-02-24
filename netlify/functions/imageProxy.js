@@ -20,8 +20,18 @@ exports.handler = async (event, context) => {
       targetUrl.pathname = '/bibica.net/wp-content/uploads' + path;
     }
     
-    targetUrl.search = url.search;
+    // Redirect to static path if no special processing needed
+    if (!path.startsWith('/avatar') && !path.startsWith('/comment')) {
+      return {
+        statusCode: 301,
+        headers: {
+          'Location': targetUrl.toString(),
+          'Cache-Control': 'public, max-age=31536000'
+        }
+      };
+    }
 
+    targetUrl.search = url.search;
     const response = await fetch(targetUrl.toString());
     const body = await response.arrayBuffer();
 
@@ -30,8 +40,7 @@ exports.handler = async (event, context) => {
       headers: {
         'Content-Type': 'image/webp',
         'Cache-Control': 'public, max-age=31536000',
-        'X-Served-By': `Netlify Functions & ${service}`,
-        'X-Dex': path  // Thêm header này để giúp Netlify xác định cache key
+        'X-Served-By': `Netlify Functions & ${service}`
       },
       body: Buffer.from(body).toString('base64'),
       isBase64Encoded: true
@@ -40,10 +49,7 @@ exports.handler = async (event, context) => {
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to proxy image' }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      body: JSON.stringify({ error: 'Failed to proxy image' })
     };
   }
 };
