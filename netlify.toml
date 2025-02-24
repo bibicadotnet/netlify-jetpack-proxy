@@ -1,9 +1,2 @@
 [build]
   functions = "netlify/functions"
-  publish = "public"
-
-[[redirects]]
-  from = "/*"
-  to = "https://i0.wp.com/bibica.net/wp-content/uploads/:splat"
-  status = 200
-  force = true
