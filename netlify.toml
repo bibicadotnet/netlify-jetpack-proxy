@@ -1,3 +1,13 @@
-[[edge_functions]]
-  path = "/*"
-  function = "image-proxy"
+# netlify.toml
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/image-proxy"
+  status = 200
+  force = true
+
+  # Cấu hình cache cho CDN
+  [redirects.headers]
+    Cache-Control = "public, max-age=31536000"
