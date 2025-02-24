@@ -1,6 +1,18 @@
-export default async function handler(request) {
+export default async function handler(request, context) {
   const url = new URL(request.url);
   
+  // Tạo cache key từ pathname và search params
+  const cacheKey = `${url.pathname}${url.search}`;
+  
+  // Cấu hình cache cho context
+  context.cache = {
+    key: cacheKey,
+    edge: {
+      maxAge: 31536000,
+      staleWhileRevalidate: 86400
+    }
+  };
+
   const rules = {
     '/avatar': {
       targetHost: 'secure.gravatar.com',
@@ -39,11 +51,12 @@ export default async function handler(request) {
 
   return new Response(response.body, {
     headers: {
-      'content-type': 'image/webp',
-      'Cache-Control': 'public, max-age=31536000',
-      'link': response.headers.get('link'),
+      'Content-Type': 'image/webp',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Link': response.headers.get('link'),
       'X-Cache': response.headers.get('x-nc'),
-      'X-Served-By': `Netlify Edge & ${config.service}`
+      'X-Served-By': `Netlify Edge & ${config.service}`,
+      'X-Cache-Key': cacheKey
     }
   });
 }
