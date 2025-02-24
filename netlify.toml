@@ -6,8 +6,8 @@
   to = "/.netlify/functions/image-proxy"
   status = 200
   force = true
-  headers = {Cache-Control = "public, max-age=31536000"}
 
-[context.production]
-  [context.production.environment]
-    CACHE_CONTROL = "public, max-age=31536000"
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
