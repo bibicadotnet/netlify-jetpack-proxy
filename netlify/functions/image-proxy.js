@@ -1,9 +1,19 @@
-// netlify/functions/image-proxy.js
 exports.handler = async (event, context) => {
-  // Normalize URL và loại bỏ query parameters không cần thiết
+  // Chuẩn hóa URL và tạo cache key
   const url = new URL(event.rawUrl);
   const normalizedPath = url.pathname.toLowerCase();
   
+  // Chỉ giữ lại các query parameters cần thiết
+  const allowedParams = ['size', 'width', 'height'];
+  const paramString = new URLSearchParams(
+    Array.from(new URLSearchParams(url.search))
+      .filter(([key]) => allowedParams.includes(key))
+      .sort((a, b) => a[0].localeCompare(b[0]))
+  ).toString();
+  
+  // Tạo cache key nhất quán
+  const cacheKey = `${normalizedPath}${paramString ? `?${paramString}` : ''}`;
+
   const rules = {
     '/avatar': {
       targetHost: 'secure.gravatar.com',
@@ -33,19 +43,10 @@ exports.handler = async (event, context) => {
 
   try {
     const [prefix, config] = rule;
-    const targetUrl = new URL(event.rawUrl);
+    const targetUrl = new URL(url);
     targetUrl.hostname = config.targetHost;
     targetUrl.pathname = config.pathTransform(normalizedPath, prefix);
-    
-    // Chỉ giữ lại các query parameters cần thiết
-    const allowedParams = ['size', 'width', 'height'];
-    const newSearchParams = new URLSearchParams();
-    for (const [key, value] of new URLSearchParams(url.search)) {
-      if (allowedParams.includes(key)) {
-        newSearchParams.append(key, value);
-      }
-    }
-    targetUrl.search = newSearchParams.toString();
+    targetUrl.search = paramString;
 
     const response = await fetch(targetUrl.toString(), {
       headers: {
@@ -60,17 +61,19 @@ exports.handler = async (event, context) => {
       statusCode: response.status,
       headers: {
         'Content-Type': 'image/webp',
-        'Cache-Control': 'public, max-age=31536000',
+        'Cache-Control': 'public, max-age=31536000, immutable',
         'CDN-Cache-Control': 'public, max-age=31536000',
+        'Surrogate-Control': 'public, max-age=31536000',
         'ETag': `"${etag}"`,
         'Link': response.headers.get('link'),
         'X-Cache': response.headers.get('x-nc'),
         'X-Served-By': `Netlify Functions & ${config.service}`,
-        'Vary': 'Accept-Encoding',
-        'X-Cache-Key': `${normalizedPath}${targetUrl.search}`
+        'X-Cache-Key': cacheKey,
+        'Vary': 'Accept-Encoding'
       },
       body: Buffer.from(buffer).toString('base64'),
-      isBase64Encoded: true
+      isBase64Encoded: true,
+      ttl: 31536000
     };
 
   } catch (error) {
