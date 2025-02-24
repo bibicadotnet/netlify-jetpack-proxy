@@ -1,11 +1,6 @@
-// netlify/functions/image-proxy.js
-const fetch = require('node-fetch');
-
 exports.handler = async (event, context) => {
-  // Khởi tạo URL từ request
   const url = new URL(event.rawUrl);
   
-  // Định nghĩa rules cho việc chuyển đổi URL
   const rules = {
     '/avatar': {
       targetHost: 'secure.gravatar.com',
@@ -24,7 +19,6 @@ exports.handler = async (event, context) => {
     }
   };
 
-  // Tìm rule phù hợp
   const rule = Object.entries(rules).find(([prefix]) => url.pathname.startsWith(prefix));
 
   if (!rule) {
@@ -41,18 +35,14 @@ exports.handler = async (event, context) => {
     targetUrl.pathname = config.pathTransform(url.pathname, prefix);
     targetUrl.search = url.search;
 
-    // Thực hiện fetch request
     const response = await fetch(targetUrl.toString(), {
       headers: {
-        'Accept': event.headers.accept || '*/*',
-        'User-Agent': 'Netlify Function Image Proxy'
+        'Accept': event.headers.accept || '*/*'
       }
     });
 
-    // Xử lý binary data
     const buffer = await response.arrayBuffer();
 
-    // Trả về response với headers phù hợp
     return {
       statusCode: response.status,
       headers: {
