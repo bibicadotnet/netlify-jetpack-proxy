@@ -1,28 +1,9 @@
 [build]
   functions = "netlify/functions"
+  publish = "public"
 
-# Cấu hình cho các path đặc biệt
-[[redirects]]
-  from = "/avatar/*"
-  to = "/.netlify/functions/imageProxy"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/comment/*"
-  to = "/.netlify/functions/imageProxy"
-  status = 200
-  force = true
-
-# Cấu hình proxy với Edge caching
 [[redirects]]
   from = "/*"
   to = "https://i0.wp.com/bibica.net/wp-content/uploads/:splat"
   status = 200
   force = true
-  headers = {X-Served-By = "Netlify & Jetpack"}
-
-# Thêm cấu hình Edge cache
-[context.production]
-  [context.production.edge]
-    cache = "manual"
